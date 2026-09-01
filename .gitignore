@@ -8,5 +8,6 @@
 *.out
 *.lot
 *.gz
+/output/pdf/AIMHub_documentation_review.pdf
 fig/*.emf
 fig/*.wmf

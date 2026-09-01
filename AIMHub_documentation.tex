@@ -46,6 +46,18 @@
 \definecolor{color-6}{rgb}{1,0.75,0}
 \definecolor{color-7}{rgb}{0,0,1}
 \definecolor{color-8}{rgb}{0.64,0.08,0.08}
+
+% Change-review mode. tex_review.bat defines \AIMHubReview before loading
+% this file; the normal tex.bat build leaves the marked text black.
+\newif\ifAIMHubReviewMode
+\ifdefined\AIMHubReview
+  \AIMHubReviewModetrue
+\else
+  \AIMHubReviewModefalse
+\fi
+\newcommand{\changed}[1]{\ifAIMHubReviewMode{\color{red}#1}\else#1\fi}
+\newenvironment{changedblock}{\begingroup\ifAIMHubReviewMode\color{red}\fi}{\endgroup}
+
 \setlongtables
 
 \title{AIM/Hub 2.3.20 Documentation}
