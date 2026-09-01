@@ -361,3 +361,224 @@ latex -halt-on-error AIMHub_documentation.tex
 latex -halt-on-error AIMHub_documentation.tex
 dvipdfmx AIMHub_documentation.dvi
 ```
+
+## 15. PDF作成処理を `tex.bat` にまとめる
+
+前節の5コマンドは、Windowsのバッチファイルへまとめることができます。この設定は一度だけ行い、次回からは `tex.bat` を実行するだけでPDFを更新します。
+
+### 15.1 参考文献のUnicode文字をLaTeX形式へ直す
+
+元の `EndNoteLibrary.bib` には、通常のLaTeXで直接処理できないUnicodeのマイナス記号 `−`（U+2212）が含まれています。`EndNoteLibrary.bib` を開き、次の文献タイトルを修正します。
+
+修正前：
+
+```bibtex
+title = {An emission pathway for stabilization at 6 Wm−2 radiative forcing},
+```
+
+修正後：
+
+```bibtex
+title = {An emission pathway for stabilization at 6~Wm$^{-2}$ radiative forcing},
+```
+
+これにより、参考文献を読み込む際の次のエラーを防ぎます。
+
+```text
+LaTeX Error: Unicode character − (U+2212) not set up for use with LaTeX.
+```
+
+### 15.2 `tex.bat` を書き換える
+
+Positronで `C:\AIMHubdoc\tex.bat` を開き、既存の内容を次の内容へ置き換えて保存します。
+
+```bat
+@echo off
+setlocal
+
+rem Always build from the directory containing this batch file.
+cd /d "%~dp0"
+
+rem Use the standard TeX Live 2026 location if PATH is not yet available.
+where latex >nul 2>&1
+if errorlevel 1 (
+    if exist "C:\texlive\2026\bin\windows\latex.exe" (
+        set "PATH=C:\texlive\2026\bin\windows;%PATH%"
+    )
+)
+
+rem Check all commands before starting the build.
+for %%C in (latex bibtex dvipdfmx) do (
+    where %%C >nul 2>&1
+    if errorlevel 1 (
+        echo [ERROR] %%C was not found.
+        echo Check the TeX Live installation and PATH setting.
+        exit /b 1
+    )
+)
+
+rem Remove stale intermediate files before the first LaTeX pass.
+echo [0/5] Removing old intermediate files...
+for %%E in (aux bbl blg dvi lof log lot out toc) do (
+    if exist "AIMHub_documentation.%%E" (
+        del /q "AIMHub_documentation.%%E"
+        if exist "AIMHub_documentation.%%E" (
+            echo [ERROR] Could not remove AIMHub_documentation.%%E.
+            exit /b 1
+        )
+    )
+)
+
+echo [1/5] Running LaTeX...
+latex -interaction=nonstopmode -halt-on-error AIMHub_documentation.tex
+if errorlevel 1 goto :build_error
+
+echo [2/5] Running BibTeX...
+bibtex AIMHub_documentation
+if errorlevel 1 goto :build_error
+
+echo [3/5] Resolving bibliography and references...
+latex -interaction=nonstopmode -halt-on-error AIMHub_documentation.tex
+if errorlevel 1 goto :build_error
+
+echo [4/5] Finalizing cross-references...
+latex -interaction=nonstopmode -halt-on-error AIMHub_documentation.tex
+if errorlevel 1 goto :build_error
+
+echo [5/5] Creating PDF...
+dvipdfmx AIMHub_documentation.dvi
+if errorlevel 1 goto :build_error
+
+echo.
+echo [SUCCESS] AIMHub_documentation.pdf was created successfully.
+exit /b 0
+
+:build_error
+echo.
+echo [ERROR] The PDF build failed. Review the error above.
+exit /b 1
+```
+
+このバッチは次の処理を行います。
+
+1. `tex.bat` が置かれているフォルダへ移動します。
+2. TeX Liveのコマンドが利用可能か確認します。
+3. 古い `.aux`、`.bbl`、`.dvi` などの中間ファイルを削除します。
+4. `latex → bibtex → latex → latex → dvipdfmx` の順に処理します。
+5. 途中でエラーが起きた場合は、その場で停止します。
+
+古い中間ファイルを削除するのは、修正前の `.bbl` などが残り、新しい原稿を処理する前にエラーになることを防ぐためです。既存のPDFは開始時に削除しないため、失敗した場合でも直前のPDFは残ります。
+
+### 15.3 バッチを初めて実行する
+
+Positronのターミナルで次を実行します。
+
+```powershell
+cd C:\AIMHubdoc
+.\tex.bat
+```
+
+すべて成功すると最後に次のように表示されます。
+
+```text
+[SUCCESS] AIMHub_documentation.pdf was created successfully.
+```
+
+最初のLaTeX処理中に表示される `Citation ... undefined` は、参考文献がまだ確定していない段階の警告です。後続処理で解消されるため、最後に `[SUCCESS]` が表示されればビルド成功です。`Overfull \hbox` と `Underfull \hbox` もレイアウトに関する警告であり、それだけでは処理は停止しません。
+
+### 15.4 次回以降のPDF更新方法
+
+次回からは次の手順だけで更新できます。
+
+1. `AIMHub_documentation.tex` を編集して保存します。
+2. Positronのターミナルで次を実行します。
+
+```powershell
+cd C:\AIMHubdoc
+.\tex.bat
+```
+
+3. `[SUCCESS]` が表示されたことを確認します。
+4. PDFの更新日時を確認します。
+
+```powershell
+Get-Item .\AIMHub_documentation.pdf |
+    Select-Object FullName, LastWriteTime, Length
+```
+
+## 16. MarkdownマニュアルからHTMLを更新する
+
+`WINDOWS_TEX_BUILD_MANUAL.md` を編集した後は、Quartoを使って可読性の高いHTMLへ変換できます。以下では、CSSやJavaScriptをHTML内へ埋め込み、単独で開けるHTMLを作成します。
+
+### 16.1 Markdownを編集する
+
+Positronで次のファイルを編集して保存します。
+
+```text
+C:\AIMHubdoc\WINDOWS_TEX_BUILD_MANUAL.md
+```
+
+ファイルを生成せずに表示だけ確認する場合は、Markdownを開いた状態で `Ctrl + Shift + V` を押します。
+
+### 16.2 Quartoの場所を設定する
+
+Positronのターミナルで次を実行します。
+
+```powershell
+$quartoExe = 'C:\Program Files\RStudio\resources\app\bin\quarto\bin\quarto.exe'
+Test-Path -LiteralPath $quartoExe
+```
+
+`True` が表示されれば利用できます。PowerShellを閉じると `$quartoExe` の設定は消えるため、新しくターミナルを開いた場合はもう一度実行します。
+
+### 16.3 単独HTMLを生成する
+
+```powershell
+cd C:\AIMHubdoc
+
+if (Test-Path -LiteralPath '.\WINDOWS_TEX_BUILD_MANUAL_files') {
+    Remove-Item -LiteralPath '.\WINDOWS_TEX_BUILD_MANUAL_files' -Recurse -Force
+}
+
+& $quartoExe render .\WINDOWS_TEX_BUILD_MANUAL.md `
+    --to html `
+    -M 'embed-resources:true' `
+    -M 'toc:true' `
+    -M 'lang:ja'
+```
+
+- `--to html`：MarkdownをHTMLへ変換します。
+- `embed-resources:true`：CSSやJavaScriptをHTML内へ埋め込みます。
+- `toc:true`：HTMLに目次を付けます。
+- `lang:ja`：HTMLの文書言語を日本語として設定します。
+- 既存の `_files` フォルダは、以前の通常レンダリングで作られた補助ファイルなので、単独HTMLを作る前に削除します。
+
+出力ファイルは次のとおりです。
+
+```text
+C:\AIMHubdoc\WINDOWS_TEX_BUILD_MANUAL.html
+```
+
+### 16.4 HTMLを確認する
+
+```powershell
+Start-Process .\WINDOWS_TEX_BUILD_MANUAL.html
+```
+
+既定のWebブラウザでHTMLが開きます。Markdownを修正した場合は、保存後に再度 `quarto render` を実行するとHTMLが上書き更新されます。
+
+### 16.5 Gitへ追加する
+
+Markdown、HTML、バッチファイルなど、今回更新したファイルだけを明示してステージします。
+
+```powershell
+git add -- .\WINDOWS_TEX_BUILD_MANUAL.md .\WINDOWS_TEX_BUILD_MANUAL.html
+git status
+git diff --cached --stat
+```
+
+PDF、参考文献、バッチファイルも同じコミットへ含める場合は、次のように指定します。
+
+```powershell
+git add -- .\AIMHub_documentation.pdf .\EndNoteLibrary.bib .\tex.bat .\WINDOWS_TEX_BUILD_MANUAL.md .\WINDOWS_TEX_BUILD_MANUAL.html
+```
