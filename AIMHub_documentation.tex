@@ -914,7 +914,8 @@ PVA_{r,a}\cdot QVA_{r,a}+PINTA_{r,a}\cdot QINTA_{r,a}+
 PENE_{r,a}\cdot QENE_{r,a}+PRES_{r,a}\cdot QRES_{r,a}+
 GHGCA\_NENE_{r,a}+VRENCAP_{r,a}\cdot QA_{r,a}+
 \sum _{emcm\in EMCM}QRED_{r,emcm,a}+COMPCOPR_{r,a}\cdot QA_{r,a}+
-\sum _{g,emsc}ABTC\_NCS_{r,a,g,emsc} - GHGCAFULL_{R,A}\cdot CarTaxExempt
+\sum _{g,emsc}ABTC\_NCS_{r,a,g,emsc} - GHGCAFULL_{R,A}\cdot CarTaxExempt+
+\changed{QXAC_{r,a,"COM\_STO"}\cdot PCCS_{r}}
 \,\,\,\,\,\forall r\in R,\,a\in ALEO 
 \notag \end{autobreak} (PVADEF)\end{align}\end{center}
 
@@ -959,6 +960,10 @@ $GHGCAFULL_{r,ac}$: Carbon tax penalty on residual emissions.
 
 $CarTaxExempt$: Flag parameter for carbon tax penalty exemption.
 
+\begin{changedblock}
+$PCCS_{r}$: additional CCS price in region \textit{r} (US\$/tCO\textsubscript{2}).
+\end{changedblock}
+
 \end{flushleft}
 
 Activity cost is different between the energy transformation sector and non-energy transformation sector as shown in the previous chapter. The difference is energy and value added treatment. For each activity, total revenue net of taxes is fully exhausted by payments for value-added and intermediate inputs. Given the above definitions of \textit{PA}, \textit{PVA, PENE, PINTA}, \textit{PENE} and \textit{PRES}, equation (PVADEF) implicitly defines the value-added price, \textit{PVA}.
@@ -968,6 +973,10 @@ Activity cost is different between the energy transformation sector and non-ener
 Moreover, sometimes, activity level is constrained by political decisions; for example, nuclear power plant construction is not determined only by economic rationality. In such cases, a rent is absorbed by the activity as \textit{VRENCAP}.
 
       The emission reduction countermeasures for CCS technology cost and non-energy related demissions are added up as \textit{ABTC\_NoCCS} and \textit{QRED}. 
+
+\begin{changedblock}
+For a carbon storage activity, the value of the storage service, $QXAC_{r,a,"COM\_STO"}\cdot PCCS_{r}$, is also included in activity revenue and costs.
+\end{changedblock}
 
 \begin{flushleft}\textbf{Resource Input Price}\end{flushleft}
 
@@ -1188,7 +1197,9 @@ Capital vintage is taken into account and the old and new capitals are aggregate
 
 \begin{flushleft} $ica_{r,c,a}$: quantity of \textit{c} per unit of aggregate intermediate input \textit{a}, \end{flushleft}
 
-Emission reduction counter measures (CCS is a good example) are installable when the emission is constrained. The emission reduction inputs is \textit{QRED} and their cost (\$/tonCO\textsubscript{2}eq) is ${\eta}$. 
+\begin{changedblock}
+Emission reduction counter measures (CCS is a good example) are installable when the emission is constrained. The emission reduction input is \textit{QRED}. Its cost is ${\eta}+PCCS$, where ${\eta}$ is the base CCS cost and \textit{PCCS} is the additional CCS price.
+\end{changedblock}
 
 \begin{flushleft}\textbf{capital consumption for CCS and non-energy related emissions reduction}\end{flushleft}
 
@@ -1208,6 +1219,7 @@ $a\in A\_ NEA$: a sector subset of non-energy related emission abatement service
 \begin{center} \begin{align} \begin{autobreak}
 QRED_{r,emcm,a} = 
 \xi _{emcm,a}^{max_{emcm,a}}\cdot TSCT_{r,a,"ccs"}\sum _{g\in G}gwp_{g}\cdot EMALI_{r,a,g}
+\changed{\cdot \left(\eta_{r,emcm}+PCCS_{r}\right)}
 \,\forall r\in R,\,a\in A,\,emcm\in EMCM0
 \notag \end{autobreak} (GHG\_ABATEMENT)\end{align}\end{center}
 
@@ -1230,6 +1242,7 @@ $\xi_{emcm,a}^{max_{emcm,a}}$: Unit cost of CCS in sector a.
 QRED_{r,emcm,a}=
 \xi_{emcm,a}^{max_{emcm,a}}\cdot TSCT_{r,a,"ccs"}
 \sum_{c\in ENE}\sum_{g\in G}gwp_{g}\cdot QINT_{r,c,a}\cdot enur_{r,c,a}\cdot efffc_{r,c,a,g}
+\changed{\cdot \left(\eta_{r,emcm}+PCCS_{r}\right)}
  \,\,\,\forall r\in R,\,a\in A,\,emcm\in EMCM1 
 \notag \end{autobreak} (GHG\_ABATEMENT2)\end{align} \end{center}
 
@@ -1244,6 +1257,7 @@ $emcm\in EMCM1\left(\subset EMCM\right)$: a subset of emission reduction counter
 QRED_{r,emcm,a}=
 \xi _{emcm,a}^{max_{emcm,a}}\cdot TSCT_{r,a,"ccs"}
 \sum _{g\in G}gwp_{g}\cdot EMBII_{r,a,g}
+\changed{\cdot \left(\eta_{r,emcm}+PCCS_{r}\right)}
  \,\,\,\forall r\in R,\,a\in A,\,emcm\in EMCM2 
 \notag \end{autobreak} (GHG\_ABATEMENT3) \end{align} \end{center}
 
@@ -1253,17 +1267,56 @@ $emcm\in EMCM2\left(\subset EMCM\right)$: a subset of emission reduction counter
 
 CCS installation rate is determined by the following equation.
 
+\begin{changedblock}
 \begin{flushleft}\textbf{CCS equipped share }\end{flushleft}
 
 
-\begin{center}$TSCT_{r,a,tc}=exp\left(\left(PGHG_{r}-\xi _{emcm,a}^{max_{emcm,a}}\right)/(\xi _{emcm,a}^{max_{emcm,a}}\cdot \beta _{r,a,tc})\right)\cdot \left(1+exp\left(\left(PGHG_{r}-\xi _{emcm,a}^{max_{emcm,a}}\right)/(\xi _{emcm,a}^{max_{emcm,a}}\cdot \beta _{r,a,tc})\right)\right)^{-1},\forall r\in R,\,a\in A,\,tc\in TC$ (TECHTOTSHARECCS)
-\end{center}
+\begin{align*}
+K_{r,a}&=\sum _{\substack{emcm\in EMCM}}
+\left(\bar{\eta}_{r,emcm}+PCCS_{r}\right),\\
+Z_{r,a}&=\frac{pghgprg_{"CO2"}\cdot \min\left(1,PGHG_{r}\right)-K_{r,a}}{K_{r,a}}
+\cdot \beta_{r,a,"CCS"}^{tech},\\
+TSCT_{r,a,tc}&=\min\left(ccsupsh_{r,a,tc},\frac{\exp\left(Z_{r,a}\right)}{1+\exp\left(Z_{r,a}\right)}\right),\\
+&\hspace{7em}\forall r\in R,\,a\in A,\,tc\in TC.
+\end{align*}
+\begin{center}(TECHTOTSHARECCS)\end{center}
 
 \begin{flushleft}
 $\alpha _{a,tc}^{tech}$: share parameter for technology Logit selection function,
 
 $\beta _{r,a,tc}^{tech}$: exponent of technology Logit selection.
+
+$\bar{\eta}_{r,emcm}$: representative base unit cost of CCS measure \textit{emcm}.
+
+$pghgprg_{"CO2"}$: conversion factor applied to the CO\textsubscript{2} price signal.
+
+$ccsupsh_{r,a,tc}$: upper bound on the CCS-equipped share.
 \end{flushleft}
+\end{changedblock}
+
+\begin{changedblock}
+\begin{flushleft}\textbf{Regional CCS constraint}\end{flushleft}
+
+\begin{align*}
+ccsc_{r}
+&-\sum _{\substack{emcm\in EMCM}}
+\sum _{a\in A\_CCSC}
+\frac{QRED_{r,emcm,a}}{\eta_{r,emcm}+PCCS_{r}}\\
+&-QSTO2_{r,"COM\_STO"},
+\qquad \forall r\in R.
+\end{align*}
+\begin{center}(CCSTLIMDEF)\end{center}
+
+\begin{flushleft}
+$ccsc_{r}$: exogenous CCS volume available in region \textit{r} for the current model year.
+
+$a\in A\_CCSC\left(\subset A\right)$: a set of activities counted toward the regional CCS.
+
+$QSTO2_{r,"COM\_STO"}$: CCS amount from DACCS.
+\end{flushleft}
+
+Equation (CCSTLIMDEF) limits the annual CCS in each region. For each region, the cumulative capacity is distributed evenly across the years from the year in which CCS becomes available through 2100.
+\end{changedblock}
 
 \begin{flushleft}\textbf{Energy Input Technology Share: }\end{flushleft}
 
@@ -1951,6 +2004,7 @@ Equation (YFDEF) defines the total income of each factor. In equation (YIFDEF), 
 YI_{r,i} = 
 \sum _{f\in F}YIF_{r,i,f}+TRII\_Resource_{r,i}
 +shincome_{r,i}\cdot (GHGTCOST_{r}-\sum_{ac\in AC} CarTaxExempt\cdot GHGCAFULL_{r,ac})+VRENCAPTOT_{r,i}
++\changed{QXAC_{r,"STO","COM\_STO"}\cdot PCCS_{r}}
 -(PGHG\_ G+PGHG\_ IMP\_ QUO_{r}-PGHG\_ EXP\_ QUO_{r})
 \cdot GHG\_ IMP_{r}\cdot EXR_{r}\cdot shincome_{r,i}
 +shres_{r,i}\cdot \sum _{a\in A}PRES_{r,a}\cdot QRES_{r,a}+shincome_{r,i}\cdot
@@ -1984,6 +2038,10 @@ $PGHG\_IMP\_QUO_{r}$: GHG emission price generated by import quota,
 $PGHG\_EXP\_QUO_{r}$: GHG emission price generated by export quota.
 
 $RQUOQA_{r,a}$: shadow subsidies of the fixed activity level (If the acticity level is fixed, the complementary subsidies are generated as \textit{RQUOQA}).
+
+\begin{changedblock}
+$QXAC_{r,"STO","COM\_STO"}\cdot PCCS_{r}$: income from the additional CCS price paid for DACCS.
+\end{changedblock}
 \end{flushleft}
 
 Domestic nongovernment institutions form a subset of the set of domestic institutions. The total income of any domestic nongovernment institution is the sum of factor incomes (defined in equation (YIDEF), transfers from other domestic nongovernment institutions, the balance of payment of GHG emission trading, CCS installation cost, rent generated by the quota of the activity level and electricity generation capacity rent. This rent total is defined below (only for enterprise).
@@ -2490,8 +2548,12 @@ As is mentioned already in section \ref{sec:Stru-AirPolGHGEmi}, the air pollutan
 \begin{flushleft}\textbf{Emissions related to activity level (Industrial activity)}\end{flushleft}
 
 
-\begin{center}$EMALI_{r,a,g,emsc}=DRV\_ EMIPRO_{r,a,g,emsc}\cdot efacl_{r,a,g,emsc}\left(1-NERED_{r,a,g,emsc}\right)-\sum _{emcm\in EMCM}\left(\frac{QRED_{r,emsc,a}}{\eta _{emsc,a}}\right),\,\,\,\,$
-\end{center}
+\begin{align*}
+EMALI_{r,a,g,emsc}={}&DRV\_ EMIPRO_{r,a,g,emsc}\cdot efacl_{r,a,g,emsc}
+\left(1-NERED_{r,a,g,emsc}\right)\\
+&\changed{-\sum _{emcm\in EMCM}
+\frac{QRED_{r,emcm,a}}{\eta_{r,emcm}+PCCS_{r}}\cdot ccsmapsource_{emsc,emcm}}.
+\end{align*}
 
 
 \begin{center}$\forall r\in R,\,a\in A\,,\,g\in G,\,emsc\in EMSC$    
@@ -2513,6 +2575,10 @@ $efacl_{r,ac,g,emsc}$: emission factors for emissions related to activity level 
 $NERED_{r,a,g,emsc}$: emission reduction caused by the GHG emission price, energy source \textit{emsc}
 
 $DRV\_EMIPRO_{r,a,g,emsc}$: Driving force of emissions which is represented by acticity levels for each industry \textit{a}.
+
+\begin{changedblock}
+$ccsmapsource_{emsc,emcm}$: mapping between an emission source \textit{emsc} and a CCS measure \textit{emcm}.
+\end{changedblock}
 \end{flushleft}
 
 \begin{flushleft}\textbf{Emissions driving forces}\end{flushleft}
@@ -5141,6 +5207,10 @@ p{\dimexpr 0.254\linewidth-2\tabcolsep-\arrayrulewidth}|}
  & Gas fired  & 80 \\\cline{2-3}
  & Biomass fired & 80 \\\hline 
 \end{tabularx}
+
+\begin{changedblock}
+Regional cumulative CCS capacities are based on Gidden et al. (2025) \cite{Gidden2025}. For each region, the cumulative capacity is distributed evenly across the years from the year in which CCS becomes available through 2100, thereby defining the annual CCS capacity constraint. Once this constraint becomes binding, an additional CCS price, \textit{PCCS}, emerges.
+\end{changedblock}
 
 \subsection{\label{subsec:NonCO2Red}{Non-CO2 reduction}}
 
